@@ -1,6 +1,11 @@
+# -*- coding: UTF-8 -*-
+# author: star6r6
+
 import pyautogui
 import threading
 import time
+
+DEBUG = False
 
 note_to_key_dict = {
     'H1': 'q',
@@ -37,6 +42,8 @@ class AutoWindsong(object):
         self._playing_index = 0
         self._existed_track_thread_list = []
         self._finished_thread_count = 0
+        # 关闭pyautogui的输入延时
+        pyautogui.PAUSE = 0
 
     def play(self, speed=1):
         self.speed = speed
@@ -53,6 +60,7 @@ class AutoWindsong(object):
             self._playing_key_info_list = key_info_list
             self._wait_for_all_threads_finish()
         print('演奏完毕！')
+        exit(0)
 
     def _init_pending_thread_list(self):
         for note_info_node in self.score:
@@ -89,11 +97,13 @@ class AutoWindsong(object):
 
     def _create_track_thread(self, track_id):
         t = threading.Thread(target=self._play_note, args=(track_id,))
+        t.setDaemon(True)
         t.start()
         self._existed_track_thread_list.append(t)
 
     def _play_note(self, track_id):
         last_played_index = -1
+        last_play_time = None
         while True:
             time.sleep(0.001)
             if last_played_index != self._playing_index and track_id < len(self._playing_key_info_list):
@@ -101,7 +111,15 @@ class AutoWindsong(object):
                 note = self._playing_key_info_list[track_id][0]
                 key = note_to_key_dict.get(note)
                 during_time = self._playing_key_info_list[track_id][1]
-                print('track_id:', track_id, note, key, during_time)
+                if DEBUG:
+                    print('track_id:', track_id, note, key, during_time)
+                if DEBUG and last_play_time:
+                    print('before press cost time:', time.time() - last_play_time)
                 pyautogui.press(key)
+                if DEBUG and last_play_time:
+                    print('after press cost time:', time.time() - last_play_time)
                 time.sleep(during_time)
                 self._finished_thread_count += 1
+                if DEBUG and last_play_time:
+                    print('real cost time:', time.time() - last_play_time)
+                last_play_time = time.time()
